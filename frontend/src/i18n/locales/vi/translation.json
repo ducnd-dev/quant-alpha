@@ -1,0 +1,23 @@
+{
+  "welcome": "Chào mừng đến với Alpha Quant",
+  "login": "Đăng nhập",
+  "register": "Đăng ký",
+  "email": "Email",
+  "password": "Mật khẩu",
+  "confirmPassword": "Xác nhận mật khẩu",
+  "forgotPassword": "Quên mật khẩu?",
+  "loginSuccess": "Đăng nhập thành công",
+  "loginFailed": "Đăng nhập thất bại",
+  "dashboard": "Bảng điều khiển",
+  "market": "Thị trường",
+  "portfolio": "Danh mục đầu tư",
+  "settings": "Cài đặt",
+  "logout": "Đăng xuất",
+  "language": "Ngôn ngữ",
+  "darkMode": "Chế độ tối",
+  "lightMode": "Chế độ sáng",
+  "name": "Tên",
+  "dontHaveAccount": "Bạn chưa có tài khoản?",
+  "alreadyHaveAccount": "Bạn đã có tài khoản?",
+  "passwordMismatch": "Mật khẩu không khớp"
+}

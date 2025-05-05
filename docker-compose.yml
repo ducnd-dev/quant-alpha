@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  nginx:
+    build: ./nginx
+    container_name: alpha_quant_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    restart: always
+
+  backend:
+    build: ./backend
+    container_name: alpha_quant_backend
+    # Không cần expose port 8000 ra ngoài khi sử dụng Nginx
+    # ports:
+    #   - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+      - POSTGRES_USER=alpha_quant
+      - POSTGRES_PASSWORD=alpha_quant_password
+      - POSTGRES_DB=alpha_quant
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: alpha_quant_frontend
+    # Không cần expose port 3000 ra ngoài khi sử dụng Nginx
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    restart: always
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: alpha_quant_postgres
+    # Nếu không cần truy cập trực tiếp từ máy host
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=alpha_quant
+      - POSTGRES_PASSWORD=alpha_quant_password
+      - POSTGRES_DB=alpha_quant
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: alpha_quant_redis
+    # Nếu không cần truy cập trực tiếp từ máy host
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:

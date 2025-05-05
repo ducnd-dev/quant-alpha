@@ -1,0 +1,23 @@
+{
+  "welcome": "Welcome to Alpha Quant",
+  "login": "Login",
+  "register": "Register",
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "forgotPassword": "Forgot Password?",
+  "loginSuccess": "Login successful",
+  "loginFailed": "Login failed",
+  "dashboard": "Dashboard",
+  "market": "Market",
+  "portfolio": "Portfolio",
+  "settings": "Settings",
+  "logout": "Logout",
+  "language": "Language",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
+  "name": "Name",
+  "dontHaveAccount": "Don't have an account?",
+  "alreadyHaveAccount": "Already have an account?",
+  "passwordMismatch": "Passwords do not match"
+}

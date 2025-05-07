@@ -10,7 +10,7 @@ import os
 from database import get_db, Base, engine
 from cache import setup_redis
 from config import API_V1_PREFIX, ENVIRONMENT
-from routers import market, websocket, auth
+from routers import market, websocket, auth, signals
 from middlewares.rate_limit import rate_limit_middleware
 from middlewares.security import SecurityMiddleware
 
@@ -147,6 +147,7 @@ async def db_test(db: AsyncSession = Depends(get_db)):
 app.include_router(auth.router, prefix=API_V1_PREFIX)
 app.include_router(market.router, prefix=API_V1_PREFIX)
 app.include_router(websocket.router, prefix=API_V1_PREFIX)
+app.include_router(signals.router, prefix=API_V1_PREFIX)  # Add signals router
 
 # Run the application
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from './api';
 import webSocketService from './webSocketService';
 
 // Types for signal data
@@ -24,6 +24,43 @@ export interface WebSocketSignalUpdate {
   price: number;
   rsi: number;
   timestamp: string;
+}
+
+export interface TradingStrategy {
+  id: string;
+  name: string;
+  description: string;
+  parameters: Record<string, any>;
+  is_public?: boolean;
+  created_at?: string;
+}
+
+export interface TradingSignal {
+  id: string;
+  symbol: string;
+  signal_type: 'BUY' | 'SELL' | 'HOLD';
+  strength: number;
+  price_at_signal: number;
+  target_price?: number;
+  stop_loss?: number;
+  timeframe: 'SHORT' | 'MEDIUM' | 'LONG';
+  created_at: string;
+  expires_at?: string;
+  is_active: boolean;
+  analysis_data?: Record<string, any>;
+}
+
+export interface GenerateSignalParams {
+  symbol: string;
+  strategy_id: string;
+  timeframe?: 'SHORT' | 'MEDIUM' | 'LONG';
+}
+
+export interface CreateStrategyParams {
+  name: string;
+  description: string;
+  parameters: Record<string, any>;
+  is_public?: boolean;
 }
 
 // Signal service
@@ -57,6 +94,48 @@ const signalService = {
    */
   unsubscribeFromSignals: (symbol: string, handler: (data: WebSocketSignalUpdate) => void) => {
     webSocketService.unsubscribe(symbol, handler);
+  },
+
+  /**
+   * Get all available trading strategies
+   */
+  async getStrategies() {
+    const response = await api.get<{ strategies: TradingStrategy[] }>('/signals/strategies');
+    return response.strategies;
+  },
+
+  /**
+   * Create a new trading strategy
+   */
+  async createStrategy(params: CreateStrategyParams) {
+    const response = await api.post<TradingStrategy>('/signals/strategies', params);
+    return response;
+  },
+
+  /**
+   * Generate a new trading signal for a given symbol using a specific strategy
+   */
+  async generateSignal(params: GenerateSignalParams) {
+    const response = await api.post<TradingSignal>('/signals/generate', params);
+    return response;
+  },
+
+  /**
+   * Get all trading signals for a specific symbol
+   */
+  async getSignalsForSymbol(symbol: string, limit: number = 10) {
+    const response = await api.get<{ symbol: string; signals: TradingSignal[] }>(
+      `/signals/symbol/${symbol}?limit=${limit}`
+    );
+    return response.signals;
+  },
+
+  /**
+   * Update performance metrics for all active signals
+   */
+  async updatePerformance() {
+    const response = await api.get<{ status: string }>('/signals/performance/update');
+    return response;
   }
 };
 

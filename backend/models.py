@@ -102,3 +102,77 @@ class SecurityAlert(Base):
     resolved_by = Column(UUID(as_uuid=True), nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+# Trading Signal Models
+class TradingStrategy(Base):
+    """Trading strategy model for storing different signal generation algorithms"""
+    __tablename__ = "trading_strategies"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(Text)
+    parameters = Column(JSONB, nullable=True)  # JSON with strategy parameters
+    creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    is_active = Column(Boolean, default=True)
+    is_public = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Relationships
+    creator = relationship("User")
+    signals = relationship("TradingSignal", back_populates="strategy")
+
+class TradingSignal(Base):
+    """Trading signal model for storing buy/sell/hold recommendations"""
+    __tablename__ = "trading_signals"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    strategy_id = Column(UUID(as_uuid=True), ForeignKey("trading_strategies.id"))
+    symbol = Column(String(20), index=True, nullable=False)
+    signal_type = Column(String(20), nullable=False)  # "BUY", "SELL", "HOLD"
+    strength = Column(Float, nullable=False)  # Signal strength (0-1)
+    price_at_signal = Column(Float, nullable=False)
+    target_price = Column(Float, nullable=True)
+    stop_loss = Column(Float, nullable=True)
+    timeframe = Column(String(20), nullable=False)  # "SHORT", "MEDIUM", "LONG"
+    analysis_data = Column(JSONB, nullable=True)  # Detailed analysis data
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    strategy = relationship("TradingStrategy", back_populates="signals")
+    performance = relationship("SignalPerformance", back_populates="signal", uselist=False)
+
+class SignalPerformance(Base):
+    """Performance tracking for trading signals"""
+    __tablename__ = "signal_performances"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    signal_id = Column(UUID(as_uuid=True), ForeignKey("trading_signals.id"), unique=True)
+    max_price_reached = Column(Float, nullable=True)
+    min_price_reached = Column(Float, nullable=True)
+    final_price = Column(Float, nullable=True)
+    percentage_change = Column(Float, nullable=True)
+    hit_target = Column(Boolean, nullable=True)
+    hit_stop_loss = Column(Boolean, nullable=True)
+    status = Column(String(20), default="ACTIVE")  # "ACTIVE", "COMPLETED", "EXPIRED"
+    completed_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Relationships
+    signal = relationship("TradingSignal", back_populates="performance")
+
+class UserWatchlist(Base):
+    """User watchlist for tracking symbols"""
+    __tablename__ = "user_watchlists"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    name = Column(String(100), nullable=False)
+    symbols = Column(ARRAY(String), default=[])
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User")

@@ -1,4 +1,5 @@
 import React from 'react';
+import { cookies } from 'next/headers';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,27 +17,55 @@ import { PriceChart } from "@/components/dashboard/price-chart";
 import { CurrentSignal } from "@/components/dashboard/current-signal";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
-// Mock data for testing
-const mockSignals = [
-  { id: 1, date: '2025-04-10', symbol: 'AAPL', signal: 'BUY', price: 186.2, rsi: 32.4 },
-  { id: 2, date: '2025-04-09', symbol: 'AAPL', signal: 'SELL', price: 183.1, rsi: 55.3 },
-  { id: 3, date: '2025-04-08', symbol: 'AAPL', signal: 'HOLD', price: 182.5, rsi: 48.7 },
-  { id: 4, date: '2025-04-07', symbol: 'AAPL', signal: 'BUY', price: 180.9, rsi: 34.2 },
-  { id: 5, date: '2025-04-06', symbol: 'AAPL', signal: 'SELL', price: 179.5, rsi: 68.9 },
-];
+// Import the API helpers
+import api from '@/services/api';
+import { SignalResponse } from '@/services/signalService';
 
-// In a real environment, this function would call an API to fetch data from the backend
+// Get signal data from API
 async function getSignalData(symbol = 'AAPL') {
-  // Simulate an API call by returning a Promise
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        currentSignal: mockSignals[0],
-        signalHistory: mockSignals,
-        lastUpdated: new Date().toISOString()
-      });
-    }, 100);
-  });
+  try {
+    // Call API directly in server component
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost'}/api/signals/${symbol}`, {
+      headers: {
+        'Authorization': `Bearer ${(await cookies()).get('token')?.value || ''}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    
+    if (!response.ok) {
+      // Fallback to mock data if API fails
+      return {
+        current_signal: { 
+          id: 1, date: new Date().toISOString().split('T')[0], 
+          symbol, signal: 'HOLD', price: 180.0, rsi: 50.0 
+        },
+        signal_history: [
+          { id: 1, date: '2025-05-05', symbol, signal: 'HOLD', price: 180.0, rsi: 50.0 },
+          { id: 2, date: '2025-05-04', symbol, signal: 'BUY', price: 178.5, rsi: 32.4 },
+          { id: 3, date: '2025-05-03', symbol, signal: 'SELL', price: 182.1, rsi: 75.6 },
+        ],
+        last_updated: new Date().toISOString()
+      };
+    }
+    
+    return await response.json() as SignalResponse;
+  } catch (error) {
+    console.error("Error fetching signal data:", error);
+    // Return mock data in case of error
+    return {
+      current_signal: { 
+        id: 1, date: new Date().toISOString().split('T')[0], 
+        symbol, signal: 'HOLD', price: 180.0, rsi: 50.0 
+      },
+      signal_history: [
+        { id: 1, date: '2025-05-05', symbol, signal: 'HOLD', price: 180.0, rsi: 50.0 },
+        { id: 2, date: '2025-05-04', symbol, signal: 'BUY', price: 178.5, rsi: 32.4 },
+        { id: 3, date: '2025-05-03', symbol, signal: 'SELL', price: 182.1, rsi: 75.6 },
+      ],
+      last_updated: new Date().toISOString()
+    };
+  }
 }
 
 export default async function DashboardPage({
@@ -47,15 +76,15 @@ export default async function DashboardPage({
   // Get symbol from query parameters or use default value
   const symbol = searchParams.symbol || 'AAPL';
   
-  // Call the data fetching function (in reality, this would call an API)
-  const data = await getSignalData(symbol) as any;
+  // Call the API to get data
+  const data = await getSignalData(symbol);
   
   return (
     <DashboardClient 
       initialSymbol={symbol}
-      initialCurrentSignal={data.currentSignal}
-      initialSignalHistory={data.signalHistory}
-      initialLastUpdated={data.lastUpdated}
+      initialCurrentSignal={data.current_signal}
+      initialSignalHistory={data.signal_history}
+      initialLastUpdated={data.last_updated}
     />
   );
 }

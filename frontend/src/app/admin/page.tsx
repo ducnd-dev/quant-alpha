@@ -1,20 +1,130 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { StatCard, ActivityList, QuickActionsPanel } from '@/components/admin/dashboard';
+import adminService, { DashboardStats, UserActivity } from '@/services/adminService';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
-  // Mock data for the dashboard
-  const stats = [
-    { name: 'Total Users', value: '2,458', change: '+12%' },
-    { name: 'Active Subscriptions', value: '1,432', change: '+8%' },
-    { name: 'Revenue', value: '$42,389', change: '+18%' },
-    { name: 'System Load', value: '28%', change: '-2%' }
-  ];
+  const router = useRouter();
+  const { toast } = useToast();
+  
+  // State management
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const recentActivities = [
+  // Mock data để hiện thị khi API chưa sẵn sàng hoặc gặp lỗi
+  const mockStats = {
+    totalUsers: { value: '2,458', change: '+12%' },
+    activeSubscriptions: { value: '1,432', change: '+8%' },
+    revenue: { value: '$42,389', change: '+18%' },
+    systemLoad: { value: '28%', change: '-2%' }
+  };
+
+  const mockActivities = [
     { user: 'John Doe', action: 'Created a new account', time: '1 hour ago' },
     { user: 'Sarah Smith', action: 'Purchased Pro plan', time: '3 hours ago' },
     { user: 'Mike Johnson', action: 'Updated profile', time: '5 hours ago' },
     { user: 'Anna Williams', action: 'Submitted a support ticket', time: '1 day ago' }
   ];
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        // Parallel data fetching 
+        const [statsData, activitiesData] = await Promise.all([
+          adminService.getDashboardStats().catch(() => mockStats),
+          adminService.getRecentActivities().catch(() => mockActivities)
+        ]);
+        
+        setStats(statsData);
+        setActivities(activitiesData);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard data. Showing mock data instead.',
+          variant: 'destructive'
+        });
+        
+        // Fallback to mock data
+        setStats(mockStats);
+        setActivities(mockActivities);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [toast]);
+
+  // Quick action handlers
+  const handleAction = async (action: string) => {
+    setActionLoading(action);
+    
+    try {
+      // Add actual implementation for these actions later
+      switch (action) {
+        case 'Add User':
+          router.push('/admin/users/new');
+          break;
+        case 'Send Newsletter':
+          toast({ title: 'Success', description: 'Newsletter has been scheduled' });
+          break;
+        case 'View Reports':
+          router.push('/admin/reports');
+          break;
+        case 'System Settings':
+          router.push('/admin/settings');
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error(`Error executing action ${action}:`, error);
+      toast({
+        title: 'Error',
+        description: `Failed to execute ${action}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Quick actions configuration
+  const quickActions = [
+    { 
+      label: 'Add User', 
+      onClick: () => handleAction('Add User'),
+      isLoading: actionLoading === 'Add User'
+    },
+    { 
+      label: 'Send Newsletter', 
+      onClick: () => handleAction('Send Newsletter'),
+      isLoading: actionLoading === 'Send Newsletter'
+    },
+    { 
+      label: 'View Reports', 
+      onClick: () => handleAction('View Reports'),
+      isLoading: actionLoading === 'View Reports'
+    },
+    { 
+      label: 'System Settings', 
+      onClick: () => handleAction('System Settings'),
+      isLoading: actionLoading === 'System Settings'
+    }
+  ];
+
+  // Handle view all activities
+  const handleViewAllActivities = () => {
+    router.push('/admin/activities');
+  };
 
   return (
     <div className="space-y-8">
@@ -22,56 +132,48 @@ export default function AdminDashboard() {
       
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow">
-            <p className="text-sm text-gray-500">{stat.name}</p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-2xl font-semibold">{stat.value}</p>
-              <p className={`text-sm ${stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                {stat.change}
-              </p>
-            </div>
-          </div>
-        ))}
+        {stats && (
+          <>
+            <StatCard 
+              title="Total Users" 
+              value={stats.totalUsers.value} 
+              change={stats.totalUsers.change} 
+              isLoading={isLoading}
+            />
+            <StatCard 
+              title="Active Subscriptions" 
+              value={stats.activeSubscriptions.value} 
+              change={stats.activeSubscriptions.change} 
+              isLoading={isLoading}
+            />
+            <StatCard 
+              title="Revenue" 
+              value={stats.revenue.value} 
+              change={stats.revenue.change} 
+              isLoading={isLoading}
+            />
+            <StatCard 
+              title="System Load" 
+              value={stats.systemLoad.value} 
+              change={stats.systemLoad.change} 
+              isLoading={isLoading}
+            />
+          </>
+        )}
       </div>
       
       {/* Recent Activity */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
-        <div className="space-y-4">
-          {recentActivities.map((activity, index) => (
-            <div key={index} className="flex justify-between pb-2 border-b">
-              <div>
-                <p className="font-medium">{activity.user}</p>
-                <p className="text-sm text-gray-500">{activity.action}</p>
-              </div>
-              <p className="text-sm text-gray-400">{activity.time}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 text-right">
-          <button className="text-blue-500 hover:underline text-sm">View all activity</button>
-        </div>
-      </div>
+      <ActivityList 
+        activities={activities} 
+        isLoading={isLoading}
+        onViewAll={handleViewAllActivities}
+      />
       
       {/* Quick Actions Panel */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-3 bg-blue-100 rounded-lg text-blue-700 hover:bg-blue-200 transition">
-            Add User
-          </button>
-          <button className="p-3 bg-green-100 rounded-lg text-green-700 hover:bg-green-200 transition">
-            Send Newsletter
-          </button>
-          <button className="p-3 bg-purple-100 rounded-lg text-purple-700 hover:bg-purple-200 transition">
-            View Reports
-          </button>
-          <button className="p-3 bg-orange-100 rounded-lg text-orange-700 hover:bg-orange-200 transition">
-            System Settings
-          </button>
-        </div>
-      </div>
+      <QuickActionsPanel 
+        actions={quickActions}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

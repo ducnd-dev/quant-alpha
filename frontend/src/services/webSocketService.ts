@@ -21,7 +21,7 @@ class WebSocketService {
   
   constructor() {
     // Determine the WebSocket URL based on the environment
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     // Convert http/https to ws/wss
     this.apiUrl = baseUrl.replace(/^http/, 'ws') + '/api/v1/ws';
   }
@@ -40,6 +40,7 @@ class WebSocketService {
     
     return new Promise((resolve, reject) => {
       try {
+        // Use the correct endpoint as defined in the backend router
         this.socket = new WebSocket(`${this.apiUrl}/market`);
         
         this.socket.onopen = () => {
@@ -82,7 +83,7 @@ class WebSocketService {
   
   // Subscribe to a specific stock symbol
   subscribe(symbol: string, handler: MessageHandler): void {
-    // Normalize the channel name
+    // Normalize the channel name to match backend expectation
     const channel = `stock:${symbol.toUpperCase()}`;
     
     // Add to subscriptions
@@ -95,6 +96,7 @@ class WebSocketService {
     this.connect()
       .then(() => {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+          // Format the message according to the backend expectation
           this.socket.send(JSON.stringify({
             action: 'subscribe',
             symbols: [symbol.toUpperCase()]

@@ -2,7 +2,8 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 const isBrowser = typeof window !== 'undefined';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+// Sửa lại URL cơ sở cho đúng cổng 8000
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,

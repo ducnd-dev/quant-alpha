@@ -2,7 +2,7 @@ import api from './api';
 
 // Types for market data
 export interface StockData {
-  time: number; // UTCTimestamp
+  time: number | string; // UTCTimestamp or string date
   open: number;
   high: number;
   low: number;

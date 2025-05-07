@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart, ColorType, UTCTimestamp, IChartApi, CandlestickData, LineData, LineWidth, LineStyle, PriceLineSource, PriceFormat, AutoscaleInfoProvider } from 'lightweight-charts';
-import { useMarketStore } from '../../store/marketStore';
 import webSocketService from '../../services/webSocketService';
 import marketService, { StockData as ApiStockData } from '../../services/marketService';
+import { useToast } from '@/hooks/use-toast';
 
 // Extended SeriesOptionsCommon interface with all the properties
 interface SeriesOptionsCommon {
@@ -165,19 +165,12 @@ export function PriceChart({ symbol }: PriceChartProps) {
   const sma50SeriesRef = useRef<ILineSeriesApi | null>(null);
   
   const [stockData, setStockData] = useState<StockData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error' | 'initializing'>('initializing');
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   
-  // Lấy state từ global market store
-  const { 
-    setConnectionStatus, 
-    setLastUpdate,
-    connectionStatus,
-    lastUpdate,
-    error,
-    isLoading,
-    stockInfo,
-    setError,
-    setLoading
-  } = useMarketStore();
+  const { toast } = useToast();
   
   // Convert timeframe to API period format
   const getPeriodFromTimeFrame = (tf: string): string => {
@@ -207,7 +200,7 @@ export function PriceChart({ symbol }: PriceChartProps) {
   const handleWebSocketUpdate = useCallback((data: WebSocketUpdate) => {
     if (data.symbol !== symbol) return;
     
-    // Cập nhật thời gian update cuối cùng vào store global
+    // Update last update time
     setLastUpdate(data.timestamp);
     
     // If we have candleSeries, update the last candle with new data
@@ -225,8 +218,19 @@ export function PriceChart({ symbol }: PriceChartProps) {
         low: Math.min(latestCandle.low, data.price),
         close: data.price
       });
+      
+      // Update the last candle data in state
+      const updatedStockData = [...stockData];
+      updatedStockData[updatedStockData.length - 1] = {
+        ...latestCandle,
+        high: Math.max(latestCandle.high, data.price),
+        low: Math.min(latestCandle.low, data.price),
+        close: data.price
+      };
+      
+      setStockData(updatedStockData);
     }
-  }, [symbol, stockData, setLastUpdate]);
+  }, [symbol, stockData]);
   
   // Initialize chart
   useEffect(() => {
@@ -332,7 +336,7 @@ export function PriceChart({ symbol }: PriceChartProps) {
     const fetchData = async () => {
       if (!symbol) return;
       
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       
       try {
@@ -350,13 +354,19 @@ export function PriceChart({ symbol }: PriceChartProps) {
       } catch (err: any) {
         console.error('Error fetching stock data:', err);
         setError(err.message || 'Failed to fetch stock data. Please try again later.');
+        
+        toast({
+          title: "Error",
+          description: "Could not load chart data. Please try again.",
+          variant: "destructive"
+        });
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
     fetchData();
-  }, [symbol, timeFrame, setLoading, setError]);
+  }, [symbol, timeFrame, toast]);
   
   // Update chart when data or indicators change
   useEffect(() => {
@@ -420,7 +430,7 @@ export function PriceChart({ symbol }: PriceChartProps) {
       webSocketService.unsubscribe(symbol, handleWebSocketUpdate);
       webSocketService.offStatusChange(handleStatusChange);
     };
-  }, [symbol, handleWebSocketUpdate, setConnectionStatus]);
+  }, [symbol, handleWebSocketUpdate]);
   
   // Toggle indicators
   const toggleIndicator = (indicator: 'sma20' | 'sma50' | 'volume') => {
